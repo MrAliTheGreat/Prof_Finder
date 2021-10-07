@@ -24,7 +24,7 @@ soup = BeautifulSoup(requests.get(inputURL).text, features = "lxml")
 foundFacultyLinks = []
 for tag in soup.find_all("a"):
     link = tag.get("href")
-    if(link is not None and "faculty" in link):
+    if(link is not None and ("faculty" in link or "people" in link)):
         foundFacultyLinks.append(link)
 
 if(len(foundFacultyLinks) <= 0):
@@ -53,7 +53,7 @@ idx = 0
 soupFacultyPage = BeautifulSoup(requests.get(targetFacultyLink).text, features = "lxml")
 for tag in soupFacultyPage.find_all("a"):
     link = tag.get("href")
-    if(link is not None):
+    if(link is not None and link != "" and link[0] != "#" and len(link) > 1):
         tagStr = tag.get_text().encode("utf-8").decode("ascii", "ignore")
         if(NER(tagStr).ents):
             for word in NER(tagStr).ents:
@@ -69,7 +69,8 @@ for tag in soupFacultyPage.find_all("a"):
                         print(profLink)
 
                     profLinks[tagStr] = profLink
-                    tag.string.replace_with("0000000000")
+                    if(tag.string):
+                        tag.string.replace_with("0000000000")
                     idx += 1
         else:
             for word in NER(tagStr.lower()).ents:
@@ -85,13 +86,18 @@ for tag in soupFacultyPage.find_all("a"):
                         print(profLink)
 
                     profLinks[tagStr] = profLink
-                    tag.string.replace_with("0000000000")
+                    if(tag.string):
+                        tag.string.replace_with("0000000000")
                     idx += 1
 
 print("\n\nStarted Deep Search For Interests...\n")
 
-myInterests = ["Machine Learning" , "Artificial Intelligence" , "Computer Vision"]
-finalLinks = set()
+myInterests = ["Machine Learning" , "Machine learning" , "machine learning" ,
+               "Artificial Intelligence" , "Artificial intelligence" , "artificial Intelligence" ,
+               "Computer Vision" , "Computer vision" , "computer vision" ,
+               "Data Science" , "Data science" , "data science" ,
+               "Data Mining" , "Data mining" , "data mining"
+              ]
 
 for profName , profLink in profLinks.items():
     soup = BeautifulSoup(requests.get(profLink).text, features = "lxml")
@@ -100,16 +106,15 @@ for profName , profLink in profLinks.items():
         # The tag here that is <p> right now must be determined by inspecting the research interest tag in browser
         # Meaning that sometimes it can be other tags for example <li> or <div>. Just take a look at inspect to be sure
         if(soup.find("p" , text = re.compile(myInterest))):
-            finalLinks.add(profLink)
             matched = True
             break
     if(matched):
-        print(profName + "     " + profLink + " +++ Match Found!")
+        print("+++ Match Found!    " + profName + "     " + profLink)
     else:
-        print(profName + "     " + profLink + " --- Match NOT Found!")
+        print("--- Match NOT Found!    " + profName + "     " + profLink)
 
 
 f = open('LeftOutProfs.html', 'w')
-f.write(soupFacultyPage.prettify())
+f.write(soupFacultyPage.encode("utf-8").decode("ascii", "ignore"))
 f.close()
 webbrowser.open_new_tab('LeftOutProfs.html')
